@@ -11,16 +11,16 @@ CREATE TABLE `users` (
 	`username` VARCHAR(100) NOT NULL UNIQUE COMMENT 'admin only',
 	`password_hash` VARCHAR(255) NOT NULL COMMENT 'admin only',
 	`role` ENUM('admin','technician','equipment_user') NOT NULL DEFAULT 'equipment_user' COMMENT 'admin only',
-	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP  COMMENT 'admin only'
 ) ENGINE=InnoDB COMMENT='User accounts (admin managed)';
 
 CREATE TABLE `machines` (
 	`id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'admin only',
 	`part_number` VARCHAR(255) NOT NULL UNIQUE COMMENT 'all',
-	`part_of_what` VARCHAR(255) NOT NULL COMMENT 'all',
+	`machine_number` VARCHAR(255) NOT NULL COMMENT 'all',
 	`next_maintenance_date` DATE COMMENT 'all',
 	`notes` TEXT COMMENT 'tech only',
-	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP  COMMENT 'admin only'
 ) ENGINE=InnoDB COMMENT='Machine inventory and maintenance info';
 
 CREATE TABLE `reports` (
