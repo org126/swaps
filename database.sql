@@ -10,7 +10,7 @@ CREATE TABLE `users` (
 	`user_id` INT AUTO_INCREMENT PRIMARY KEY,
 	`username` VARCHAR(100) NOT NULL UNIQUE COMMENT 'admin only',
 	`password_hash` VARCHAR(255) NOT NULL COMMENT 'admin only',
-	`role` ENUM('admin','technician','equipment User') NOT NULL DEFAULT 'tech' COMMENT 'admin only',
+	`role` ENUM('admin','technician','equipment_user') NOT NULL DEFAULT 'tech' COMMENT 'admin only',
 	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB COMMENT='User accounts (admin managed)';
 
