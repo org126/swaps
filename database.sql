@@ -58,13 +58,6 @@ CREATE TABLE IF NOT EXISTS `pictures` (
 	FOREIGN KEY (`report_id`) REFERENCES `reports`(`issue_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB COMMENT='Store picture paths linked to reports';
 
--- Migration note: to migrate existing `reports.picture` values into `pictures`, run:
--- INSERT INTO `pictures` (`report_id`, `path`, `created_at`)
--- SELECT r.`issue_id`, r.`picture`, r.`created_at` FROM `reports` r
--- WHERE r.`picture` IS NOT NULL AND TRIM(r.`picture`) != '';
--- After verifying the migration, remove the old column:
--- ALTER TABLE `reports` DROP COLUMN `picture`;
-
 -- Audit logs: record admin actions and changes. Sensitive fields should be redacted when stored.
 CREATE TABLE `logs` (
 	`log_id` INT AUTO_INCREMENT PRIMARY KEY,
