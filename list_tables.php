@@ -9,7 +9,7 @@ function fmtBytes($bytes){
 
 $host = $_GET['host'] ?? '127.0.0.1';
 $port = $_GET['port'] ?? '3306';
-$db   = $_GET['db']   ?? '';
+$db   = $_GET['db']   ?? 'swaps';
 $user = $_GET['user'] ?? 'root';
 $pass = $_GET['pass'] ?? '';
 
