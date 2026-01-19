@@ -76,8 +76,7 @@ if($db){
     <table>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Engine</th>
+          <th>Name</th>d
           <th>Rows</th>
           <th>Data</th>
           <th>Index</th>
