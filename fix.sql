@@ -1,0 +1,1 @@
+REPAIR TABLE secure_web;
