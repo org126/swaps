@@ -1,7 +1,5 @@
 <?php
 declare(strict_types=1);
-
-require_once __DIR__ . '/../components/auth.php';
 http_response_code(403);
 ?>
 <!doctype html>
@@ -12,8 +10,8 @@ http_response_code(403);
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-  <h1>403 — Access Denied</h1>
+  <h1>403 - Access Denied</h1>
   <p>You are not authorized to view this page.</p>
-  <p><a href="/index.php">Back to Home</a></p>
+  <p><a href="/swap/swaps/public/login.php">Go to Login</a></p>
 </body>
 </html>
