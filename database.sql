@@ -26,6 +26,7 @@ CREATE TABLE `machines` (
 	`part_number` VARCHAR(255) NOT NULL UNIQUE COMMENT 'all',
 	`machine_number` VARCHAR(255) NOT NULL COMMENT 'all',
 	`next_maintenance_date` DATE COMMENT 'all',
+	`state` ENUM('ready','in use','in maintenance','out of order') NOT NULL DEFAULT 'ready' COMMENT 'all',
 	`notes` TEXT COMMENT 'tech only',
 	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'record created timestamp'
 ) ENGINE=InnoDB COMMENT='Machine inventory and maintenance info';
@@ -41,7 +42,6 @@ CREATE TABLE `reports` (
 	`urgency` TINYINT UNSIGNED COMMENT 'tech only',
 	-- `performed_by` stores the user who performed the work; FK below.
 	`performed_by` INT COMMENT 'tech user_id',
-	`availability` ENUM('pending','in maintenance','available') NOT NULL DEFAULT 'pending' COMMENT 'all',
 	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'record created timestamp',
 	FOREIGN KEY (`performed_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB COMMENT='Reports and issues logged by techs';
