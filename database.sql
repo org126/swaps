@@ -20,6 +20,7 @@ CREATE TABLE `machines` (
 	`machine_number` VARCHAR(255) NOT NULL COMMENT 'all',
 	`next_maintenance_date` DATE COMMENT 'all',
 	`notes` TEXT COMMENT 'tech only',
+	`state` ENUM('ready','in_use','in_maintenance','out_of_order') NOT NULL DEFAULT 'ready' COMMENT 'all',
 	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP  COMMENT 'admin only'
 ) ENGINE=InnoDB COMMENT='Machine inventory and maintenance info';
 
