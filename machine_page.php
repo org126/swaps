@@ -1,41 +1,76 @@
 <?php
-// Database connection
-$host = 'localhost';
-$user = 'root';
-$password = '';
-$database = 'secure_web';
+/**
+ * Secure Machine Information Page
+ * Displays machine data from database based on machine_number parameter
+ */
 
-$conn = new mysqli($host, $user, $password, $database);
+// Load secure configuration
+require_once __DIR__ . '/config.php';
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+// ============================================
+// SECURITY: Force HTTPS in production
+// ============================================
+if (REQUIRE_HTTPS && empty($_SERVER['HTTPS']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] !== 'https') {
+    header('Location: https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+    exit;
 }
 
-// Get machine_number from URL
-$machine_number = isset($_GET['machine_number']) ? $_GET['machine_number'] : null;
+// ============================================
+// SECURITY: Validate input parameters only (NO credentials from URL)
+// ============================================
+$machine_number = isset($_GET['machine_number']) ? trim($_GET['machine_number']) : null;
+$limit = isset($_GET['limit']) ? min((int)$_GET['limit'], MAX_REPORT_LIMIT) : 20;
 
 $machine = null;
 $reports = [];
 $error = null;
 
+// ============================================
+// Database query execution
+// ============================================
 if ($machine_number) {
-    // Fetch machine data
-    $stmt = $conn->prepare("SELECT * FROM machines WHERE machine_number = ?");
-    $stmt->bind_param("s", $machine_number);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $machine = $result->fetch_assoc();
+    try {
+        // Establish connection using secure config (NOT from URL)
+        $conn = new mysqli(DB_HOST . ':' . DB_PORT, DB_USER, DB_PASS, DB_NAME);
         
-        // Fetch related reports
-        $stmt = $conn->prepare("SELECT r.*, u.username FROM reports r LEFT JOIN users u ON r.performed_by = u.user_id WHERE r.part_number = ? ORDER BY r.created_at DESC");
-        $stmt->bind_param("s", $machine['part_number']);
-        $stmt->execute();
-        $reports_result = $stmt->get_result();
-        $reports = $reports_result->fetch_all(MYSQLI_ASSOC);
-    } else {
-        $error = "Machine not found";
+        if ($conn->connect_error) {
+            // SECURITY: Don't expose error details to user
+            error_log("Database connection error: " . $conn->connect_error);
+            $error = "Unable to connect to database";
+        } else {
+            // Fetch machine data with prepared statement
+            $stmt = $conn->prepare("SELECT * FROM machines WHERE machine_number = ? LIMIT 1");
+            if (!$stmt) {
+                error_log("Database prepare error: " . $conn->error);
+                $error = "Database error occurred";
+            } else {
+                $stmt->bind_param("s", $machine_number);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                if ($result->num_rows > 0) {
+                    $machine = $result->fetch_assoc();
+                    
+                    // Fetch related reports with prepared statement
+                    $stmt2 = $conn->prepare("SELECT r.*, u.username FROM reports r LEFT JOIN users u ON r.performed_by = u.user_id WHERE r.part_number = ? ORDER BY r.created_at DESC LIMIT ?");
+                    if ($stmt2) {
+                        $stmt2->bind_param("si", $machine['part_number'], $limit);
+                        $stmt2->execute();
+                        $reports_result = $stmt2->get_result();
+                        $reports = $reports_result->fetch_all(MYSQLI_ASSOC);
+                        $stmt2->close();
+                    }
+                } else {
+                    $error = "Machine not found";
+                }
+                $stmt->close();
+            }
+            $conn->close();
+        }
+    } catch (Exception $e) {
+        // SECURITY: Log exception but don't expose to user
+        error_log("Machine page exception: " . $e->getMessage());
+        $error = "An error occurred while retrieving machine information";
     }
 } else {
     $error = "Machine number not provided";
@@ -95,7 +130,10 @@ if ($machine_number) {
             padding: 20px;
             border-radius: 8px;
             border-left: 4px solid #c33;
-            text-align: center;
+        }
+
+        .error h3 {
+            margin-bottom: 10px;
         }
 
         .info-section {
@@ -136,6 +174,7 @@ if ($machine_number) {
             color: #333;
             font-size: 16px;
             font-weight: 500;
+            word-break: break-word;
         }
 
         .status-badge {
@@ -152,17 +191,17 @@ if ($machine_number) {
             color: #155724;
         }
 
-        .status-in_use {
+        .status-in {
             background: #cce5ff;
             color: #004085;
         }
 
-        .status-in_maintenance {
+        .status-maintenance {
             background: #fff3cd;
             color: #856404;
         }
 
-        .status-out_of_order {
+        .status-order {
             background: #f8d7da;
             color: #721c24;
         }
@@ -174,10 +213,8 @@ if ($machine_number) {
             border-left: 4px solid #667eea;
             white-space: pre-wrap;
             line-height: 1.6;
-        }
-
-        .reports-container {
-            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .report-card {
@@ -188,21 +225,16 @@ if ($machine_number) {
             border-left: 4px solid #f39c12;
         }
 
-        .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 10px;
-        }
-
         .report-title {
             color: #333;
             font-weight: 600;
+            margin-bottom: 8px;
         }
 
         .report-meta {
             color: #999;
             font-size: 12px;
+            margin-bottom: 10px;
         }
 
         .report-issue {
@@ -253,7 +285,16 @@ if ($machine_number) {
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             color: #666;
             font-size: 12px;
-            text-align: center;
+        }
+
+        .usage-example {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
         }
     </style>
 </head>
@@ -264,11 +305,25 @@ if ($machine_number) {
                 <h1>Machine Information</h1>
             </div>
             <div class="content">
-                <div class="error"><?php echo htmlspecialchars($error); ?></div>
+                <div class="error">
+                    <h3>⚠️ Error</h3>
+                    <p><?php echo htmlspecialchars($error); ?></p>
+                </div>
+
+                <div class="usage-example">
+                    <strong>Usage:</strong><br><br>
+                    Display machine information:<br>
+                    <code>machine_page.php?machine_number=MACH-001</code><br><br>
+                    With custom report limit:<br>
+                    <code>machine_page.php?machine_number=MACH-001&limit=50</code><br><br>
+                    <strong>Parameters:</strong><br>
+                    • <code>machine_number</code>: Machine number to display (required)<br>
+                    • <code>limit</code>: Max reports to show (default: 20, max: 100)<br><br>
+                    <strong>Note:</strong> Database credentials are configured in <code>config.php</code> for security.
+                </div>
             </div>
-            <div class="footer">
-                <p>Usage: machine_page.php?machine_number=YOUR_MACHINE_NUMBER</p>
-            </div>
+            <div class="footer"></div>
+
         <?php elseif ($machine): ?>
             <div class="header">
                 <h1><?php echo htmlspecialchars($machine['machine_number']); ?></h1>
@@ -291,8 +346,8 @@ if ($machine_number) {
                         <div class="info-item">
                             <div class="info-label">Current State</div>
                             <div class="info-value">
-                                <span class="status-badge status-<?php echo $machine['state']; ?>">
-                                    <?php echo str_replace('_', ' ', ucfirst($machine['state'])); ?>
+                                <span class="status-badge status-<?php echo str_replace(' ', '', strtolower($machine['state'])); ?>">
+                                    <?php echo ucfirst($machine['state']); ?>
                                 </span>
                             </div>
                         </div>
@@ -307,7 +362,7 @@ if ($machine_number) {
                             <div class="info-label">Next Maintenance Date</div>
                             <div class="info-value">
                                 <?php 
-                                if ($machine['next_maintenance_date']) {
+                                if ($machine['next_maintenance_date'] && $machine['next_maintenance_date'] != '0000-00-00') {
                                     echo date('F d, Y', strtotime($machine['next_maintenance_date']));
                                 } else {
                                     echo 'Not scheduled';
@@ -335,20 +390,16 @@ if ($machine_number) {
                 <!-- Related Reports Section -->
                 <div class="info-section">
                     <h2>Related Reports (<?php echo count($reports); ?>)</h2>
-                    <div class="reports-container">
+                    <div>
                         <?php if (empty($reports)): ?>
                             <div class="no-reports">No reports found for this machine</div>
                         <?php else: ?>
                             <?php foreach ($reports as $report): ?>
                             <div class="report-card">
-                                <div class="report-header">
-                                    <div>
-                                        <div class="report-title">Report #<?php echo $report['issue_id']; ?></div>
-                                        <div class="report-meta">
-                                            Reported by: <?php echo htmlspecialchars($report['username'] ?? 'Unknown'); ?> | 
-                                            <?php echo date('F d, Y \a\t H:i', strtotime($report['created_at'])); ?>
-                                        </div>
-                                    </div>
+                                <div class="report-title">Report #<?php echo $report['issue_id']; ?></div>
+                                <div class="report-meta">
+                                    Reported by: <?php echo htmlspecialchars($report['username'] ?? 'Unknown'); ?> | 
+                                    <?php echo date('F d, Y \a\t H:i', strtotime($report['created_at'])); ?>
                                 </div>
                                 <div class="report-issue"><?php echo htmlspecialchars($report['issue']); ?></div>
                                 <div class="report-badges">
@@ -358,7 +409,7 @@ if ($machine_number) {
                                     <?php if ($report['urgency']): ?>
                                     <span class="badge badge-urgency">Urgency: <?php echo $report['urgency']; ?>/10</span>
                                     <?php endif; ?>
-                                    <span class="badge badge-status">Status: <?php echo htmlspecialchars($report['availability']); ?></span>
+                                    <span class="badge badge-status">Status: <?php echo htmlspecialchars($machine['state']); ?></span>
                                 </div>
                             </div>
                             <?php endforeach; ?>
