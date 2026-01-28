@@ -46,18 +46,6 @@ CREATE TABLE `reports` (
 	FOREIGN KEY (`performed_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB COMMENT='Reports and issues logged by techs';
 
--- Pictures moved to a dedicated table to improve report query performance.
--- Each picture is associated to a single `report_id`. If you need multiple pictures per report
--- this schema supports that (one-to-many). `path` should be a safe relative path or an URL.
-CREATE TABLE IF NOT EXISTS `pictures` (
-	`picture_id` INT AUTO_INCREMENT PRIMARY KEY,
-	`report_id` INT NOT NULL,
-	`path` VARCHAR(1024) NOT NULL,
-	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-	INDEX (`report_id`),
-	FOREIGN KEY (`report_id`) REFERENCES `reports`(`issue_id`) ON DELETE CASCADE
-) ENGINE=InnoDB COMMENT='Store picture paths linked to reports';
-
 -- Audit logs: record admin actions and changes. Sensitive fields should be redacted when stored.
 CREATE TABLE `logs` (
 	`log_id` INT AUTO_INCREMENT PRIMARY KEY,
