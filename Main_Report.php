@@ -93,8 +93,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         WHERE {$PART_COL} = ?
       ");
       $stmt2->execute([$STATUS_OUT_OF_ORDER, $part_number]);
+      // Check if machine was updated (0 rows = machine doesn't exist)
       if ($stmt2->rowCount() === 0) {
-        throw new Exception("No machine found with part number: {$part_number}");
+        throw new Exception("Machine not found. Please use an existing part number like PN-1001, PN-1002, or PN-1003.");
       }
 
       // 3) Log (A09)
@@ -105,7 +106,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } catch (Throwable $ex) {
       $pdo->rollBack();
       log_event($pdo, "REPORT_CREATE_FAILED", null, "reporter", null, "Error: " . substr($ex->getMessage(), 0, 200));
-      $errors[] = "Failed to submit report. Check machine_parts table/columns or DB setup.";
+      $errors[] = "Failed to submit report: " . $ex->getMessage();
     }
   }
 }

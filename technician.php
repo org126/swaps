@@ -96,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $stmt1 = $pdo->prepare("
           UPDATE reports
-          SET status='under_maintenance', technician.id=?, accepted_at=NOW()
+          SET status='under_maintenance', technician_id=?, accepted_at=NOW()
           WHERE issue_id=? AND status='out_of_order'
         ");
         $stmt1->execute([$techId, $issueId]);
@@ -117,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt1 = $pdo->prepare("
           UPDATE reports
           SET status='finished', finished_at=NOW()
-          WHERE issue_id=? AND status='under_maintenance' AND technician.id=?
+          WHERE issue_id=? AND status='under_maintenance' AND technician_id=?
         ");
         $stmt1->execute([$issueId, $techId]);
 
@@ -151,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 // Fetch visible queue (not finished)
 $stmt = $pdo->prepare("
-  SELECT issue_id, part_number, issue, severity, urgency, status, created_at, technician.id
+  SELECT issue_id, part_number, issue, severity, urgency, status, created_at, technician_id
   FROM reports
   WHERE status IN ('out_of_order', 'under_maintenance')
   ORDER BY created_at DESC
@@ -220,7 +220,7 @@ $rows = $stmt->fetchAll();
         <?php foreach ($rows as $r): ?>
           <?php
             $canAccept = ($r["status"] === "out_of_order");
-            $canFinish = ($r["status"] === "under_maintenance" && (int)$r["technician.id"] === $techId);
+            $canFinish = ($r["status"] === "under_maintenance" && (int)($r["technician_id"] ?? 0) === $techId);
           ?>
           <tr>
             <td><?= e((string)$r["issue_id"]) ?></td>
@@ -230,7 +230,7 @@ $rows = $stmt->fetchAll();
             <td><?= e((string)$r["urgency"]) ?></td>
             <td><?= e((string)$r["status"]) ?></td>
             <td><?= e((string)$r["created_at"]) ?></td>
-            <td><?= e((string)($r["technician.id"] ?? "")) ?></td>
+            <td><?= e((string)($r["technician_id"] ?? "")) ?></td>
             <td>
               <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
                 <input type="hidden" name="issue_id" value="<?= e((string)$r["issue_id"]) ?>" />
@@ -246,7 +246,7 @@ $rows = $stmt->fetchAll();
                 </button>
               </form>
               <div class="small">
-                <?php if ($r["status"] === "under_maintenance" && (int)$r["technician.id"] !== $techId): ?>
+                <?php if ($r["status"] === "under_maintenance" && (int)($r["technician_id"] ?? 0) !== $techId): ?>
                   Assigned to another technician.
                 <?php endif; ?>
               </div>
