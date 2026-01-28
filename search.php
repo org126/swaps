@@ -7,7 +7,7 @@ $user = 'root';
 $pass = '';
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
+ini_set('display_errors', '0');  // Hide errors from users; log instead
 
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -35,7 +35,9 @@ if ($term !== '') {
 				$stmt->execute([':t' => $like]);
 				$rows = $stmt->fetchAll();
 		} catch (Exception $e) {
-				$error = $e->getMessage();
+				// Log the actual error internally but show generic message to user
+				error_log('Search error: ' . $e->getMessage());
+				$error = 'A search error occurred. Please try again.';
 		}
 }
 ?>
