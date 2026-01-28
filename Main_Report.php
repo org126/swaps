@@ -138,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <body>
   <div class="card">
     <h1>Report Maintenance Issue</h1>
-    <p class="muted">Submit a report for a machine part. A report ID will be assigned automatically. Status will be set to <b>out_of_order</b>.</p>
+    <p class="muted">Welcome to our Report Maintenance Issue page. How can we help you today?</p>
     <p class="muted">Technician view: <a href="/swap/technician.php?tech_id=1">Technician Page</a></p>
 
     <?php if ($successMsg): ?>
