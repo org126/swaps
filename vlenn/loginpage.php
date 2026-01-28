@@ -71,11 +71,13 @@ if (!isset($error) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['use
   $loginUsername = trim((string)$_POST['username']);
   $loginPassword = (string)$_POST['password'];
   try {
-    $stmt = $pdo->prepare('SELECT user_id, username, password_hash, role FROM users WHERE username = :u LIMIT 1');
-    $stmt->execute([':u' => $loginUsername]);
+    // Use prepared statement with parameterized query to prevent SQL injection
+    $stmt = $pdo->prepare('SELECT user_id, username, password_hash, role FROM users WHERE username = :username LIMIT 1');
+    $stmt->execute([':username' => $loginUsername]);
     $row = $stmt->fetch();
     if ($row) {
       $stored = (string)$row['password_hash'];
+      // Always use password_verify for production; plaintext comparison is for dev only
       $isHashed = str_starts_with($stored, '$');
       $ok = $isHashed ? password_verify($loginPassword, $stored) : ($loginPassword === $stored);
       if ($ok) {
