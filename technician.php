@@ -37,6 +37,17 @@ function pdo_conn(string $host, string $db, string $user, string $pass): PDO {
 }
 function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, "UTF-8"); }
 
+function formatSingaporeTime(?string $datetime): string {
+  if (!$datetime) return "";
+  try {
+    $dt = new DateTime($datetime, new DateTimeZone('UTC'));
+    $dt->setTimezone(new DateTimeZone('Asia/Singapore'));
+    return $dt->format('Y-m-d H:i:s');
+  } catch (Throwable $e) {
+    return $datetime;
+  }
+}
+
 function log_event(PDO $pdo, string $eventType, ?int $reportId, string $actorRole, ?int $actorId, ?string $details = null): void {
   $stmt = $pdo->prepare("
     INSERT INTO audit_logs (event_type, report_id, actor_role, actor_id, ip_address, user_agent, details)
@@ -229,7 +240,7 @@ $rows = $stmt->fetchAll();
             <td><?= e((string)$r["severity"]) ?></td>
             <td><?= e((string)$r["urgency"]) ?></td>
             <td><?= e((string)$r["status"]) ?></td>
-            <td><?= e((string)$r["created_at"]) ?></td>
+            <td><?= e(formatSingaporeTime($r["created_at"])) ?></td>
             <td><?= e((string)($r["technician_id"] ?? "")) ?></td>
             <td>
               <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">

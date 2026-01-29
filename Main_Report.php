@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+// Force browser to not cache this page
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 /**
  * report.php
  * - Anyone can submit a maintenance report
@@ -53,6 +58,7 @@ function log_event(PDO $pdo, string $eventType, ?int $reportId, string $actorRol
 
 $errors = [];
 $successMsg = null;
+$machineAddedMsg = null;
 
 try {
   $pdo = pdo_conn($dbHost, $dbName, $dbUser, $dbPass);
@@ -60,6 +66,40 @@ try {
   http_response_code(500);
   echo "DB connection failed. Check DB settings in report.php.";
   exit;
+}
+
+// ===== ADD MACHINES SECTION =====
+// Initialize machines PN-1001 to PN-1009
+try {
+  $stmt = $pdo->prepare("INSERT IGNORE INTO {$MACHINE_PARTS_TABLE} ({$PART_COL}, description, {$STATUS_COL}) VALUES (?, ?, ?)");
+  
+  $machines = [
+    ['PN-1001', 'Widget A'],
+    ['PN-1002', 'Widget B'],
+    ['PN-1003', 'Widget C'],
+    ['PN-1004', 'Widget D'],
+    ['PN-1005', 'Widget E'],
+    ['PN-1006', 'Widget F'],
+    ['PN-1007', 'Widget G'],
+    ['PN-1008', 'Widget H'],
+    ['PN-1009', 'Widget I'],
+  ];
+  
+  $addedCount = 0;
+  foreach ($machines as $m) {
+    try {
+      $stmt->execute([$m[0], $m[1], $STATUS_AVAILABLE]);
+      $addedCount++;
+    } catch (Throwable $e) {
+      // Machine already exists, skip
+    }
+  }
+  
+  if ($addedCount > 0) {
+    $machineAddedMsg = "✓ System initialized with {$addedCount} machine(s)";
+  }
+} catch (Throwable $e) {
+  $errors[] = "Error initializing machines: " . $e->getMessage();
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -115,6 +155,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Report Issue</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
@@ -124,7 +167,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     .muted { color: #a8b6d8; }
     .row { display:flex; gap: 14px; flex-wrap: wrap; }
     label { display:block; font-weight: 700; margin: 12px 0 6px; }
-    input, textarea { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #2b3a5a; background: #0c1426; color: #e7eefc; }
+    input, textarea, select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #2b3a5a; background: #0c1426; color: #e7eefc; font-size: 16px; }
+    select { 
+      cursor: pointer; 
+      appearance: none; 
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234f7cff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 20px;
+      padding-right: 40px;
+    }
+    select:hover { border-color: #4f7cff; }
+    select:focus { outline: none; border-color: #4f7cff; box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.1); }
+    select option { background: #111b2e; color: #e7eefc; padding: 8px; }
     textarea { min-height: 120px; resize: vertical; }
     .col { flex: 1; min-width: 220px; }
     .btn { margin-top: 14px; padding: 10px 14px; border: 0; border-radius: 10px; background: #4f7cff; color: #fff; font-weight: 800; cursor: pointer; }
@@ -141,6 +196,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <p class="muted">Welcome to our Report Maintenance Issue page. How can we help you today?</p>
     <p class="muted">Technician view: <a href="/swap/technician.php?tech_id=1">Technician Page</a></p>
 
+    <?php if ($machineAddedMsg): ?>
+      <div class="alert ok"><?= e($machineAddedMsg) ?></div>
+    <?php endif; ?>
+
     <?php if ($successMsg): ?>
       <div class="alert ok"><?= e($successMsg) ?></div>
     <?php endif; ?>
@@ -156,11 +215,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       </div>
     <?php endif; ?>
 
-   <form method="post" action="/swap/Main_Report.php" autocomplete="off">
+   <form method="post" action="/swap/Main_Report.php?v=2" autocomplete="off">
       <div class="row">
         <div class="col">
-          <label>Machine Part Number</label>
-          <input name="part_number" placeholder="e.g., PN-1001" required maxlength="100" />
+          <label for="machine_num">Machine Part Number</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="machine_num" name="machine_num" min="1" max="9" placeholder="1-9" required style="flex: 1;" />
+            <input type="text" id="part_display" placeholder="Select..." readonly style="flex: 1; cursor: not-allowed; background: #0a1020;" />
+          </div>
+          <input type="hidden" id="part_number" name="part_number" required />
         </div>
         <div class="col">
           <label>Severity (1-10)</label>
@@ -178,5 +241,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <button class="btn" type="submit">Submit Report</button>
     </form>
   </div>
+  <script>
+    const machineMap = {
+      1: { value: 'PN-1001', display: 'PN-1001 - Widget A' },
+      2: { value: 'PN-1002', display: 'PN-1002 - Widget B' },
+      3: { value: 'PN-1003', display: 'PN-1003 - Widget C' },
+      4: { value: 'PN-1004', display: 'PN-1004 - Widget D' },
+      5: { value: 'PN-1005', display: 'PN-1005 - Widget E' },
+      6: { value: 'PN-1006', display: 'PN-1006 - Widget F' },
+      7: { value: 'PN-1007', display: 'PN-1007 - Widget G' },
+      8: { value: 'PN-1008', display: 'PN-1008 - Widget H' },
+      9: { value: 'PN-1009', display: 'PN-1009 - Widget I' }
+    };
+
+    const numInput = document.getElementById('machine_num');
+    const displayInput = document.getElementById('part_display');
+    const hiddenInput = document.getElementById('part_number');
+
+    function updateMachine() {
+      const num = numInput.value;
+      if (num && machineMap[num]) {
+        displayInput.value = machineMap[num].display;
+        hiddenInput.value = machineMap[num].value;
+      } else {
+        displayInput.value = '';
+        hiddenInput.value = '';
+      }
+    }
+
+    numInput.addEventListener('input', updateMachine);
+  </script>
 </body>
 </html>
