@@ -4,8 +4,8 @@
 -- NOTE: DROP order avoids FK failures (drop children before parents).
 -- Drops are idempotent so this file can be re-run during development.
 DROP TABLE IF EXISTS `logs`;
-DROP TABLE IF EXISTS `pictures`;
 DROP TABLE IF EXISTS `reports`;
+DROP TABLE IF EXISTS `pictures`;
 DROP TABLE IF EXISTS `machines`;
 DROP TABLE IF EXISTS `users`;
 
