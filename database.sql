@@ -4,6 +4,7 @@
 -- NOTE: DROP order avoids FK failures (drop children before parents).
 -- Drops are idempotent so this file can be re-run during development.
 DROP TABLE IF EXISTS `logs`;
+DROP TABLE IF EXISTS `pictures`;
 DROP TABLE IF EXISTS `reports`;
 DROP TABLE IF EXISTS `pictures`;
 DROP TABLE IF EXISTS `machines`;
@@ -18,7 +19,6 @@ CREATE TABLE `users` (
 	`role` ENUM('admin','technician','equipment_user') NOT NULL DEFAULT 'equipment_user' COMMENT 'admin only',
 	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'record created timestamp'
 ) ENGINE=InnoDB COMMENT='User accounts (admin managed)';
-
 
 -- Machines table: inventory and maintenance scheduling.
 CREATE TABLE `machines` (
