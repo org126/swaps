@@ -1,13 +1,6 @@
 <?php
 // Simple search page for machines by part_number or machine_number
-$host = '127.0.0.1';
-$port = '3306';
-$db   = 'swaps';
-$user = 'root';
-$pass = '';
-
-error_reporting(E_ALL);
-ini_set('display_errors', '0');  // Hide errors from users; log instead
+require_once __DIR__ . '/config.php';
 
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -17,11 +10,7 @@ $error = null;
 
 if ($term !== '') {
 		try {
-				$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-				$pdo = new PDO($dsn, $user, $pass, [
-						PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-						PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-				]);
+				$pdo = getPDOConnection();
 
 				$sql = "
 						SELECT id, part_number, machine_number, next_maintenance_date, notes, created_at

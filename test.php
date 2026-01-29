@@ -1,55 +1,34 @@
 <?php
-// C:\xampp\htdocs\test\helloworld01.php
+// Database viewer tool - intended for development only
 /*
- * show_all.php
- * Simple development tool: connect to a MySQL database via PDO and display
- * table contents in HTML. Intended for local/dev usage only (do NOT use in
- * production as-is; it exposes DB contents and accepts credentials via GET).
- *
- * Query params:
- *  - host (default 127.0.0.1)
- *  - port (default 3306)
- *  - db   (database/schema name) REQUIRED to connect and list tables
- *  - user (default root)
- *  - pass (password for DB user)
- *  - limit (optional row limit per table; default 100)
- *  - table (optional specific table to display)
- *  - show_all (if set to 1, ignores limit and shows all rows for the selected table)
+ * Uses configuration from config.php for database connection
+ * Displays table contents in HTML.
+ * NOTE: For development use only - exposes database contents
  */
+
+require_once __DIR__ . '/config.php';
 
 // Escape helper for outputting HTML-safe values
 function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
-// Connection and UI defaults (overridden by GET params)
-$host = $_GET['host'] ?? '127.0.0.1';
-$port = $_GET['port'] ?? '3306';
-$db   = $_GET['db']   ?? '';
-$user = $_GET['user'] ?? 'root';
-$pass = $_GET['pass'] ?? '';
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
-
 // State holders
 $error = null;
 $tables = [];
+$selectedTable = $_GET['table'] ?? '';
+$showAll = isset($_GET['show_all']) && $_GET['show_all'] == '1';
 
-// If a database/schema name is provided, attempt to connect and list tables
-if($db){
-  try{
-    $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
-    // Create PDO with exceptions enabled and associative fetch mode
-    $pdo = new PDO($dsn, $user, $pass, [
-      PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-      PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-
-    // Query information_schema for the list of tables in the requested schema
-    $stmt = $pdo->prepare("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = :schema ORDER BY TABLE_NAME");
-    $stmt->execute([':schema' => $db]);
-    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-  }catch(Exception $e){
-    // Capture error message for display in the page
-    $error = $e->getMessage();
-  }
+// Try to connect and load tables
+try{
+  $pdo = getPDOConnection();
+  
+  // Query information_schema for the list of tables in the configured database
+  $stmt = $pdo->prepare("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = :schema ORDER BY TABLE_NAME");
+  $stmt->execute([':schema' => DB_NAME]);
+  $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}catch(Exception $e){
+  // Capture error message for display in the page
+  error_log('Database error: ' . $e->getMessage());
+  $error = 'Database connection failed.';
 }
 ?>
 <!doctype html>
@@ -70,45 +49,25 @@ if($db){
   </style>
 </head>
 <body>
-  <h2>Database Viewer</h2>
-  <form method="get" class="cfg">
-    <label>Host: <input name="host" value="<?=h($host)?>"></label>
-    <label>Port: <input name="port" value="<?=h($port)?>" style="width:80px"></label>
-    <label>DB: <input name="db" value="<?=h($db)?>"></label>
-    <label>User: <input name="user" value="<?=h($user)?>"></label>
-    <label>Password: <input name="pass" value="<?=h($pass)?>" type="password"></label>
-    <label>Limit (optional): <input name="limit" value="<?=h($limit)?>" style="width:80px"></label>
-    <button type="submit">Connect</button>
-  </form>
+  <h2>Database Viewer (Development Only)</h2>
+  <p style="color:#666; font-size:0.9em;">Connected to: <strong><?=h(DB_HOST . ':' . DB_PORT . '/' . DB_NAME)?></strong></p>
 
-  <?php if(!empty($tables)): ?>
-    <form method="get" style="margin-top:8px">
-      <input type="hidden" name="host" value="<?=h($host)?>">
-      <input type="hidden" name="port" value="<?=h($port)?>">
-      <input type="hidden" name="db" value="<?=h($db)?>">
-      <input type="hidden" name="user" value="<?=h($user)?>">
-      <input type="hidden" name="pass" value="<?=h($pass)?>">
+  <?php if($error): ?>
+    <div style="color:red; margin:12px 0;">Error: <?=h($error)?></div>
+  <?php elseif(!empty($tables)): ?>
+    <form method="get" style="margin:12px 0">
       <label>Select table:
         <select name="table">
           <option value="">-- choose table --</option>
           <?php foreach($tables as $t): ?>
-            <option value="<?=h($t)?>" <?=isset($_GET['table']) && $_GET['table']==$t? 'selected' : ''?>><?=h($t)?></option>
+            <option value="<?=h($t)?>" <?=$selectedTable==$t? 'selected' : ''?>><?=h($t)?></option>
           <?php endforeach; ?>
         </select>
       </label>
-      <label style="margin-left:8px"><input type="checkbox" name="show_all" value="1" <?=isset($_GET['show_all']) ? 'checked' : ''?>> Show all rows</label>
+      <label style="margin-left:8px"><input type="checkbox" name="show_all" value="1" <?=$showAll ? 'checked' : ''?>> Show all rows</label>
       <button type="submit">Show</button>
     </form>
-  <?php endif; ?>
-
-  <?php if($error): ?>
-    <div class="err">Error: <?=h($error)?></div>
-  <?php endif; ?>
-
-  <?php if($db && empty($error)): ?>
-    <div class="meta">Schema: <?=h($db)?> — <?=count($tables)?> table(s). Showing up to <?=h($limit)?> rows per table.</div>
-
-    <?php
+    <div class="meta"><?=count($tables)?> table(s) available.</div>
       $selected = $_GET['table'] ?? null;
       if($selected && in_array($selected, $tables, true)){
           try{

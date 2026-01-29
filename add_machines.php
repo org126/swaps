@@ -1,20 +1,15 @@
 <?php
 /**
  * Add more machines to database
- * Visit: http://localhost/swap/add_machines.php
+ * Visit: http://localhost/swaps/add_machines.php
  */
-$dbHost = "127.0.0.1";
-$dbName = "secure_web";
-$dbUser = "root";
-$dbPass = "";
+require_once __DIR__ . '/config.php';
 
 try {
-  $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-  ]);
+  $pdo = getPDOConnection();
   echo "<h2>Adding More Machines...</h2>";
 } catch (Throwable $e) {
-  die("<p style='color:red;'><strong>ERROR:</strong> Cannot connect to database: " . $e->getMessage() . "</p>");
+  die("<p style='color:red;'><strong>ERROR:</strong> Database connection failed. Please check .env configuration.</p>");
 }
 
 // Add PN-1004 to PN-1009

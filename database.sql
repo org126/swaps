@@ -4,7 +4,6 @@
 -- NOTE: DROP order avoids FK failures (drop children before parents).
 -- Drops are idempotent so this file can be re-run during development.
 DROP TABLE IF EXISTS `logs`;
-DROP TABLE IF EXISTS `pictures`;
 DROP TABLE IF EXISTS `reports`;
 DROP TABLE IF EXISTS `pictures`;
 DROP TABLE IF EXISTS `machines`;
@@ -26,12 +25,10 @@ CREATE TABLE `machines` (
 	`part_number` VARCHAR(255) NOT NULL UNIQUE COMMENT 'all',
 	`machine_number` VARCHAR(255) NOT NULL COMMENT 'all',
 	`next_maintenance_date` DATE COMMENT 'all',
-	`state` ENUM('ready','in use','in maintenance','out of order') NOT NULL DEFAULT 'ready' COMMENT 'all',
 	`notes` TEXT COMMENT 'tech only',
 	`state` ENUM('ready','in_use','in_maintenance','out_of_order') NOT NULL DEFAULT 'ready' COMMENT 'all',
 	`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP  COMMENT 'admin only'
 ) ENGINE=InnoDB COMMENT='Machine inventory and maintenance info';
-
 
 -- Reports table: technical issues logged by technicians.
 CREATE TABLE `reports` (
