@@ -16,7 +16,7 @@ declare(strict_types=1);
 // EDIT THESE 3 SETTINGS ONLY
 //////////////////////////////
 $dbHost = "127.0.0.1";
-$dbName = "secure_web";
+$dbName = "swaps";
 $dbUser = "root";
 $dbPass = "";
 
