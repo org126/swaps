@@ -18,16 +18,17 @@ header("Expires: 0");
  */
 
 //////////////////////////////
-// EDIT THESE 3 SETTINGS ONLY
+// DATABASE: Uses sagana_part.sql schema (separate from main database)
 //////////////////////////////
-$dbHost = "127.0.0.1";
-$dbName = "secure_web";
-$dbUser = "root";
-$dbPass = "";
+require_once __DIR__ . '/config_sagana.php';
+$dbHost = SAGANA_DB_HOST;
+$dbName = SAGANA_DB_NAME;  // Sagana Part database
+$dbUser = SAGANA_DB_USER;
+$dbPass = SAGANA_DB_PASS;
 
-// Your EXISTING machine parts table + columns (adjust if your project uses different names)
-$MACHINE_PARTS_TABLE = "machines";   // NOT machine_parts
-$PART_COL            = "part_number"; // your column name is part_number
+// Sagana schema: machines table uses part_number as PK, with description and state columns
+$MACHINE_PARTS_TABLE = "machines";
+$PART_COL            = "part_number";
 $STATUS_COL          = "state";       // your column name is state      
 
 // Status strings used in your machine_parts table (adjust to match your existing schema values)

@@ -11,17 +11,18 @@ declare(strict_types=1);
  */
 
 //////////////////////////////
-// EDIT THESE 3 SETTINGS ONLY
+// DATABASE: Uses sagana_part.sql schema (separate from main database)
 //////////////////////////////
-$dbHost = "127.0.0.1";
-$dbName = "secure_web";
-$dbUser = "root";
-$dbPass = "";
+require_once __DIR__ . '/config_sagana.php';
+$dbHost = SAGANA_DB_HOST;
+$dbName = SAGANA_DB_NAME;
+$dbUser = SAGANA_DB_USER;
+$dbPass = SAGANA_DB_PASS;
 
-// Your EXISTING machine parts table + columns (adjust if needed)
-$MACHINE_PARTS_TABLE = "machines"; // use existing `machines` table
-$PART_COL = "part_number";             // <-- change if yours is different
-$STATUS_COL = "state";                // <-- change if yours is different
+// Sagana schema: machines table uses part_number as PK, with description and state columns
+$MACHINE_PARTS_TABLE = "machines";
+$PART_COL = "part_number";
+$STATUS_COL = "state";
 
 $STATUS_OUT_OF_ORDER = "out_of_order";
 $STATUS_UNDER_MAINTENANCE = "under_maintenance";
