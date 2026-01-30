@@ -1,4 +1,4 @@
-<?php
+2<?php
 // Admin page: manage users (add, edit, delete)
 // Only accessible to admins in production (add session/auth check)
 require_once __DIR__ . '/config.php';

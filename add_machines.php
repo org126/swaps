@@ -1,4 +1,11 @@
 <?php
+require_once 'session_check.php';
+// Require admin role to run this script
+if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+  http_response_code(403);
+  exit('Forbidden');
+}
+
 /**
  * Add more machines to database
  * Visit: http://localhost/swaps/add_machines.php

@@ -1,4 +1,6 @@
 <?php
+require_once 'session_check.php';
+
 /**
  * Secure Machine Information Page
  * Displays machine data from database based on machine_number parameter
