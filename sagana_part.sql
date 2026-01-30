@@ -58,3 +58,4 @@ INSERT INTO machines (part_number, description, state) VALUES
 ON DUPLICATE KEY UPDATE
   description = VALUES(description),
   state = VALUES(state);
+
