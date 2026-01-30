@@ -1,3 +1,21 @@
+<?php
+// Secure session cookie parameters and session start
+session_set_cookie_params([
+  'lifetime' => 0,
+  'path' => '/',
+  'domain' => '',
+  'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+  'httponly' => true,
+  'samesite' => 'Lax'
+]);
+session_start();
+
+// If already logged in, send to the protected page
+if (!empty($_SESSION['user_id'])) {
+  header('Location: list_tables.php');
+  exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,7 +99,13 @@ if (!isset($error) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['use
       $isHashed = str_starts_with($stored, '$');
       $ok = $isHashed ? password_verify($loginPassword, $stored) : ($loginPassword === $stored);
       if ($ok) {
-        $loginMsg = 'Login successful: ' . h($row['username']) . ' (role: ' . h($row['role']) . ')';
+        // Set session and redirect to protected page
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $row['user_id'];
+        $_SESSION['username'] = $row['username'];
+        $_SESSION['role'] = $row['role'];
+        header('Location: list_tables.php');
+        exit;
       } else {
         $loginMsg = 'Invalid username or password.';
       }
