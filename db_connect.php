@@ -22,3 +22,4 @@ try {
     // Do NOT expose DB details in production
     die("Database connection failed.");
 }
+
