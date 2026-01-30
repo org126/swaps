@@ -1,4 +1,6 @@
 <?php
+require_once 'session_check.php';
+
 function h($s){return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');}
 function fmtBytes($bytes){
     if($bytes<=0) return '0 B';
