@@ -1,4 +1,5 @@
 <?php
+require_once 'session_check.php';
 // Simple search page for machines by part_number or machine_number
 require_once __DIR__ . '/config.php';
 
