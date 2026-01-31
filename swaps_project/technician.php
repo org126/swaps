@@ -181,28 +181,11 @@ $rows = $stmt->fetchAll();
   <meta charset="utf-8" />
   <title>Technician Reports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; background:#0b1220; color:#e7eefc; padding: 28px; }
-    .wrap { max-width: 1100px; margin:0 auto; background:#111b2e; border:1px solid #24304a; border-radius: 14px; padding: 18px; }
-    h1 { margin: 0 0 10px; }
-    .bar { display:flex; justify-content: space-between; align-items:center; gap: 12px; flex-wrap: wrap; }
-    .pill { display:inline-block; padding:6px 10px; border-radius: 999px; background:#0c1426; border:1px solid #2b3a5a; color:#a8b6d8; }
-    .ok { margin-top: 10px; padding: 10px 12px; background:#0f2a1b; border:1px solid #1f6b3b; color:#bff3d0; border-radius: 10px; }
-    .err { margin-top: 10px; padding: 10px 12px; background:#2a1111; border:1px solid #6b1f1f; color:#f3bfbf; border-radius: 10px; }
-    table { width:100%; border-collapse: collapse; margin-top: 14px; overflow:hidden; border-radius: 12px; }
-    th, td { padding: 10px; border-bottom: 1px solid #24304a; vertical-align: top; }
-    th { background:#0c1426; text-align:left; color:#cfe0ff; }
-    tr:hover td { background:#0f1a30; }
-    .btn { padding: 7px 10px; border-radius: 10px; border:0; cursor:pointer; font-weight:800; }
-    .accept { background:#4f7cff; color:#fff; }
-    .finish { background:#20c997; color:#072015; }
-    .disabled { opacity: .5; cursor:not-allowed; }
-    a { color:#8fb1ff; }
-    .small { color:#a8b6d8; font-size: 13px; }
-  </style>
+  <link rel="stylesheet" href="/swaps_project/styles.css">
 </head>
 <body>
   <div class="wrap">
+    <a href="/swaps_project/search.php" class="btn-back">← Back to Search</a>
     <div class="bar">
       <div>
         <h1>Technician Report Queue</h1>
@@ -248,7 +231,7 @@ $rows = $stmt->fetchAll();
             <td><?= e(formatSingaporeTime($r["created_at"])) ?></td>
             <td><?= e((string)($r["technician_id"] ?? "")) ?></td>
             <td>
-              <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
+              <form method="post" class="inline-form-flex">
                 <input type="hidden" name="issue_id" value="<?= e((string)$r["issue_id"]) ?>" />
 
                 <button class="btn accept <?= $canAccept ? "" : "disabled" ?>"

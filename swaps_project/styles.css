@@ -1,0 +1,138 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 24px;
+  background: #f7f7f7;
+  color: #222;
+}
+
+a { color: #1a73e8; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container, .card, .wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+h1, h2, h3 { margin-top: 0; }
+
+label {
+  display: block;
+  margin: 8px 0 4px;
+  font-weight: 600;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+textarea { min-height: 120px; }
+
+button, .btn, .btn-back, .nav a {
+  display: inline-block;
+  padding: 8px 12px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.btn-secondary, .nav a.secondary {
+  background: #6c757d;
+}
+
+.nav {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.col { flex: 1; min-width: 220px; }
+
+.alert, .msg {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+}
+
+.ok, .success { color: #0a7a2a; }
+.err, .error { color: #b00020; }
+
+.table, table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 12px;
+  background: #fff;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th { background: #f0f0f0; }
+
+.hidden { display: none; }
+
+.inline-form { display: inline; }
+.inline-form-flex { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.form-spacing { margin: 12px 0; }
+.inline-label { margin-left: 8px; display: inline-block; font-weight: 400; }
+
+.small { font-size: 0.9em; color: #666; }
+.pill { display: inline-block; padding: 4px 8px; border: 1px solid #ccc; border-radius: 999px; }
+.muted { color: #666; }
+
+.header, .content {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.machine-card, .report-item, .notes-section, .usage-example {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  font-size: 12px;
+}

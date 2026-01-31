@@ -147,31 +147,12 @@ if ($pdo && isset($_GET['edit_id'])) {
 <head>
 	<meta charset="UTF-8">
 	<title>Admin: Manage Users</title>
-	<style>
-		body { font-family: Arial, sans-serif; margin: 24px; }
-		.container { max-width: 900px; }
-		form { margin: 20px 0; padding: 16px; border: 1px solid #ddd; border-radius: 4px; }
-		label { display: block; margin: 8px 0 4px 0; font-weight: bold; }
-		input, select { padding: 6px; width: 100%; max-width: 300px; box-sizing: border-box; margin-bottom: 12px; }
-		button { padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px; }
-		button:hover { background: #0052a3; }
-		button.delete { background: #cc3333; }
-		button.delete:hover { background: #990000; }
-		button.cancel { background: #666; }
-		button.cancel:hover { background: #333; }
-		table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-		th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-		th { background: #f5f5f5; }
-		tr:hover { background: #f9f9f9; }
-		.error { color: #cc0000; padding: 12px; background: #ffe6e6; border-radius: 4px; margin-bottom: 16px; }
-		.success { color: #006600; padding: 12px; background: #e6ffe6; border-radius: 4px; margin-bottom: 16px; }
-		.actions { white-space: nowrap; }
-		.small { font-size: 0.9em; color: #666; }
-	</style>
+	<link rel="stylesheet" href="/swaps_project/styles.css">
 </head>
 <body>
 	<div class="container">
 		<h1>Admin: Manage Users</h1>
+		<a href="/swaps_project/search.php" class="btn-back">← Back to Search</a>
 
 		<?php if ($error): ?>
 			<div class="error"><?php echo h($error); ?></div>
@@ -235,7 +216,7 @@ if ($pdo && isset($_GET['edit_id'])) {
 							<td><?php echo h($u['created_at']); ?></td>
 							<td class="actions">
 								<a href="?edit_id=<?php echo h($u['user_id']); ?>"><button type="button">Edit</button></a>
-								<form style="display:inline;" method="post" onsubmit="return confirm('Delete user: <?php echo h($u['username']); ?>?');">
+								<form class="inline-form" method="post" onsubmit="return confirm('Delete user: <?php echo h($u['username']); ?>?');">
 									<input type="hidden" name="action" value="delete">
 									<input type="hidden" name="user_id" value="<?php echo h($u['user_id']); ?>">
 									<button type="submit" class="delete">Delete</button>

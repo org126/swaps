@@ -53,17 +53,7 @@ if ($term !== '') {
 <head>
 	<meta charset="UTF-8">
 	<title>Machine Search</title>
-	<style>
-		body { font-family: Arial, sans-serif; margin: 24px; }
-		.nav { margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
-		.nav a { display: inline-block; padding: 8px 12px; background: #4f7cff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; }
-		.nav a.secondary { background: #6c757d; }
-		form { margin-bottom: 16px; }
-		table { border-collapse: collapse; width: 100%; }
-		th, td { border: 1px solid $\ccc; padding: 8px; }
-		th { background: #f5f5f5; }
-		.error { color: #c00; }
-	</style>
+	<link rel="stylesheet" href="/swaps_project/styles.css">
 </head>
 <body>
 	<h2>Search Machines</h2>

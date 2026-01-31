@@ -31,6 +31,7 @@ $STATUS_COL          = "state";
 $STATUS_OUT_OF_ORDER = "out_of_order";
 $STATUS_UNDER_MAINTENANCE = "in_maintenance";
 $STATUS_AVAILABLE = "ready";
+$STATUS_UNAVAILABLE = "out_of_order"; // Using out_of_order as unavailable status
 
 function pdo_conn(): PDO {
   return getPDOConnection();
@@ -90,19 +91,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
       // 1) Insert report (A03: prepared statement)
       $stmt = $pdo->prepare("
-        INSERT INTO reports (part_number, issue, severity, urgency, status)
-        VALUES (?, ?, ?, ?, 'out_of_order')
+        INSERT INTO reports (part_number, issue, severity, urgency)
+        VALUES (?, ?, ?, ?)
       ");
       $stmt->execute([$part_number, $issue, $severity, $urgency]);
       $newReportId = (int)$pdo->lastInsertId();
 
-      // 2) Update machine part status -> out_of_order (adjust table/columns if needed)
+      // 2) Update machine part status -> unavailable (out_of_order)
       $stmt2 = $pdo->prepare("
         UPDATE {$MACHINE_PARTS_TABLE}
         SET {$STATUS_COL} = ?
         WHERE {$PART_COL} = ?
       ");
-      $stmt2->execute([$STATUS_OUT_OF_ORDER, $part_number]);
+      $stmt2->execute([$STATUS_UNAVAILABLE, $part_number]);
       // Check if machine was updated (0 rows = machine doesn't exist)
       if ($stmt2->rowCount() === 0) {
         throw new Exception("Machine not found. Please use an existing part number like PN-1001, PN-1002, or PN-1003.");
@@ -130,38 +131,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta http-equiv="Expires" content="0">
   <title>Report Issue</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; background: #0b1220; color: #e7eefc; padding: 28px; }
-    .card { max-width: 900px; margin: 0 auto; background: #111b2e; border: 1px solid #24304a; border-radius: 14px; padding: 20px; }
-    h1 { margin: 0 0 10px; }
-    .muted { color: #a8b6d8; }
-    .row { display:flex; gap: 14px; flex-wrap: wrap; }
-    label { display:block; font-weight: 700; margin: 12px 0 6px; }
-    input, textarea, select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #2b3a5a; background: #0c1426; color: #e7eefc; font-size: 16px; }
-    select { 
-      cursor: pointer; 
-      appearance: none; 
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234f7cff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 20px;
-      padding-right: 40px;
-    }
-    select:hover { border-color: #4f7cff; }
-    select:focus { outline: none; border-color: #4f7cff; box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.1); }
-    select option { background: #111b2e; color: #e7eefc; padding: 8px; }
-    textarea { min-height: 120px; resize: vertical; }
-    .col { flex: 1; min-width: 220px; }
-    .btn { margin-top: 14px; padding: 10px 14px; border: 0; border-radius: 10px; background: #4f7cff; color: #fff; font-weight: 800; cursor: pointer; }
-    .btn:hover { filter: brightness(1.08); }
-    .alert { margin-top: 12px; padding: 10px 12px; border-radius: 10px; }
-    .ok { background: #0f2a1b; border: 1px solid #1f6b3b; color: #bff3d0; }
-    .err { background: #2a1111; border: 1px solid #6b1f1f; color: #f3bfbf; }
-    a { color: #8fb1ff; }
-  </style>
+  <link rel="stylesheet" href="/swaps_project/styles.css">
 </head>
 <body>
   <div class="card">
+    <a href="/swaps_project/search.php" class="btn-back">← Back to Search</a>
     <h1>Report Maintenance Issue</h1>
     <p class="muted">Welcome to our Report Maintenance Issue page. How can we help you today?</p>
     <p class="muted">Technician view: <a href="/swaps_project/technician.php?tech_id=1">Technician Page</a></p>
@@ -185,7 +159,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="row">
         <div class="col">
           <label for="part_number">Machine Part Number</label>
-          <input type="text" id="part_number" name="part_number" placeholder="e.g., PN-1001" required style="width: 100%;" />
+          <input type="text" id="part_number" name="part_number" placeholder="e.g., PN-1001" required />
         </div>
         <div class="col">
           <label>Severity (1-10)</label>

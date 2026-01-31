@@ -3,15 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Login</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 1rem; }
-    form { margin-bottom: 1rem; }
-    label { display: inline-block; width: 120px; }
-    input { margin-bottom: 0.5rem; }
-    .msg { padding: 0.5rem; border-radius: 4px; }
-    .error { color: #a00; }
-    .success { color: #060; }
-  </style>
+  <link rel="stylesheet" href="/swaps_project/styles.css">
 </head>
 <body>
 
@@ -27,7 +19,7 @@
   <button type="submit">Login</button>
   <button type="reset">Reset</button>
 </form>
-<div id="msg" class="msg" style="display:none;"></div>
+<div id="msg" class="msg hidden"></div>
 <hr>
 
 <?php

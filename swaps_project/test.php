@@ -41,25 +41,16 @@ try{
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DB Viewer - <?=h($db ?: 'no-db')?></title>
-  <style>
-    body{font-family:Inter,Segoe UI,Arial;margin:18px;color:#111}
-    .cfg{margin-bottom:12px}
-    input{padding:6px;margin:4px 6px 4px 0}
-    table{border-collapse:collapse;width:100%;margin:12px 0}
-    th,td{border:1px solid #ddd;padding:6px;vertical-align:top}
-    th{background:#f3f3f3}
-    .meta{font-size:0.9em;color:#555}
-    pre{white-space:pre-wrap;word-break:break-word;margin:0}
-  </style>
+  <link rel="stylesheet" href="/swaps_project/styles.css">
 </head>
 <body>
   <h2>Database Viewer (Development Only)</h2>
-  <p style="color:#666; font-size:0.9em;">Connected to: <strong><?=h(DB_HOST . ':' . DB_PORT . '/' . DB_NAME)?></strong></p>
+  <p class="small">Connected to: <strong><?=h(DB_HOST . ':' . DB_PORT . '/' . DB_NAME)?></strong></p>
 
   <?php if($error): ?>
-    <div style="color:red; margin:12px 0;">Error: <?=h($error)?></div>
+    <div class="error form-spacing">Error: <?=h($error)?></div>
   <?php elseif(!empty($tables)): ?>
-    <form method="get" style="margin:12px 0">
+    <form method="get" class="form-spacing">
       <label>Select table:
         <select name="table">
           <option value="">-- choose table --</option>
@@ -68,7 +59,7 @@ try{
           <?php endforeach; ?>
         </select>
       </label>
-      <label style="margin-left:8px"><input type="checkbox" name="show_all" value="1" <?=$showAll ? 'checked' : ''?>> Show all rows</label>
+      <label class="inline-label"><input type="checkbox" name="show_all" value="1" <?=$showAll ? 'checked' : ''?>> Show all rows</label>
       <button type="submit">Show</button>
     </form>
     <div class="meta"><?=count($tables)?> table(s) available.</div>
