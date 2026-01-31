@@ -31,7 +31,28 @@
 <hr>
 
 <?php
-// Development error reporting (disable in production)
+declare(strict_types=1);
+
+// Start session (matches secure settings from config.php)
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => $_SERVER['HTTP_HOST'] ?? 'localhost',
+        'secure' => !empty($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Strict',
+    ]);
+    session_start();
+}
+
+// Redirect to main page if already logged in
+if (!empty($_SESSION['user_id'])) {
+    header('Location: /swaps/machine_page.php');
+    exit('Already logged in');
+}
+
+// Load config for database connection
 require_once __DIR__ . '/config.php';
 
 /*
@@ -69,7 +90,15 @@ if (!isset($error) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['use
       $isHashed = str_starts_with($stored, '$');
       $ok = $isHashed ? password_verify($loginPassword, $stored) : ($loginPassword === $stored);
       if ($ok) {
-        $loginMsg = 'Login successful: ' . h($row['username']) . ' (role: ' . h($row['role']) . ')';
+        // Set session variables on successful login
+        $_SESSION['user_id'] = $row['user_id'];
+        $_SESSION['username'] = $row['username'];
+        $_SESSION['role'] = $row['role'];
+        $_SESSION['last_activity'] = time();
+        
+        // Redirect to dashboard/machine page
+        header('Location: /swaps/machine_page.php');
+        exit('Login successful, redirecting...');
       } else {
         $loginMsg = 'Invalid username or password.';
       }
@@ -77,7 +106,8 @@ if (!isset($error) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['use
       $loginMsg = 'Invalid username or password.';
     }
   } catch (Exception $e) {
-    $loginMsg = 'Login error: ' . h($e->getMessage());
+    error_log('Login error: ' . $e->getMessage());
+    $loginMsg = 'A login error occurred. Please try again.';
   }
 }
 

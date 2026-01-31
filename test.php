@@ -1,10 +1,14 @@
 <?php
-// Database viewer tool - intended for development only
+// Database viewer tool - intended for development/admin only
 /*
  * Uses configuration from config.php for database connection
  * Displays table contents in HTML.
  * NOTE: For development use only - exposes database contents
  */
+
+// Require admin role to access this development tool
+require_once __DIR__ . '/session_check.php';
+requireRole('admin');
 
 require_once __DIR__ . '/config.php';
 

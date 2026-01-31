@@ -10,6 +10,10 @@ declare(strict_types=1);
  * Security: A03 Injection (prepared statements + validation)
  */
 
+// Require technician or admin role
+require_once __DIR__ . '/session_check.php';
+requireAnyRole(['technician', 'admin']);
+
 //////////////////////////////
 // DATABASE: Uses sagana_part.sql schema (separate from main database)
 //////////////////////////////

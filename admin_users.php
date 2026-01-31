@@ -1,6 +1,13 @@
 2<?php
-// Admin page: manage users (add, edit, delete)
-// Only accessible to admins in production (add session/auth check)
+declare(strict_types=1);
+
+/**
+ * Admin page: manage users (add, edit, delete)
+ * Only accessible to users with admin role
+ */
+require_once __DIR__ . '/session_check.php';
+requireRole('admin');
+
 require_once __DIR__ . '/config.php';
 
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
