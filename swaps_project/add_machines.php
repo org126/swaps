@@ -59,5 +59,5 @@ try {
 }
 
 echo "<hr>";
-echo "<p><a href='/swap/Main_Report.php' style='font-size:16px; padding:10px 20px; background:#4f7cff; color:white; text-decoration:none; border-radius:5px;'>→ Back to Report Page</a></p>";
+echo "<p><a href='/swaps_project/Main_Report.php' style='font-size:16px; padding:10px 20px; background:#4f7cff; color:white; text-decoration:none; border-radius:5px;'>→ Back to Report Page</a></p>";
 ?>

@@ -31,7 +31,6 @@
 <hr>
 
 <?php
-declare(strict_types=1);
 
 // Start session (matches secure settings from config.php)
 if (session_status() === PHP_SESSION_NONE) {
@@ -48,7 +47,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Redirect to main page if already logged in
 if (!empty($_SESSION['user_id'])) {
-    header('Location: /swaps/machine_page.php');
+    header('Location: /swaps_project/machine_page.php');
     exit('Already logged in');
 }
 
@@ -97,7 +96,7 @@ if (!isset($error) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['use
         $_SESSION['last_activity'] = time();
         
         // Redirect to search page after successful login
-        header('Location: /swaps/search.php');
+        header('Location: /swaps_project/search.php');
         exit('Login successful, redirecting...');
       } else {
         $loginMsg = 'Invalid username or password.';

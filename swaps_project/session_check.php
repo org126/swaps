@@ -72,7 +72,7 @@ function hasAnyRole(array $requiredRoles): bool {
  */
 function requireLogin(): void {
     if (!validateSession()) {
-        header('Location: /swaps/loginpage.php');
+        header('Location: /swaps_project/loginpage.php');
         exit('Redirecting to login...');
     }
 }

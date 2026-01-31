@@ -1,5 +1,4 @@
-2<?php
-declare(strict_types=1);
+<?php
 
 /**
  * Admin page: manage users (add, edit, delete)

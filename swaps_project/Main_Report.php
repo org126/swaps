@@ -195,7 +195,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <div class="card">
     <h1>Report Maintenance Issue</h1>
     <p class="muted">Welcome to our Report Maintenance Issue page. How can we help you today?</p>
-    <p class="muted">Technician view: <a href="/swap/technician.php?tech_id=1">Technician Page</a></p>
+    <p class="muted">Technician view: <a href="/swaps_project/technician.php?tech_id=1">Technician Page</a></p>
 
     <?php if ($machineAddedMsg): ?>
       <div class="alert ok"><?= e($machineAddedMsg) ?></div>
@@ -216,7 +216,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       </div>
     <?php endif; ?>
 
-   <form method="post" action="/swap/Main_Report.php?v=2" autocomplete="off">
+   <form method="post" action="/swaps_project/Main_Report.php?v=2" autocomplete="off">
       <div class="row">
         <div class="col">
           <label for="machine_num">Machine Part Number</label>

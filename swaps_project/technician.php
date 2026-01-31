@@ -66,7 +66,7 @@ function log_event(PDO $pdo, string $eventType, ?int $reportId, string $actorRol
 $techId = isset($_GET['tech_id']) ? (int)$_GET['tech_id'] : 0;
 if ($techId <= 0) {
   http_response_code(400);
-  echo "Missing tech_id. Example: /swap/technician.php?tech_id=1";
+  echo "Missing tech_id. Example: /swaps_project/technician.php?tech_id=1";
   exit;
 }
 
@@ -207,7 +207,7 @@ $rows = $stmt->fetchAll();
       <div>
         <h1>Technician Report Queue</h1>
         <div class="small">Technician ID: <span class="pill"><?= e((string)$techId) ?></span></div>
-        <div class="small">Reporter page: <a href="/swap/Main_Report.php">/swap/Main_Report.php</a></div>
+        <div class="small">Reporter page: <a href="/swaps_project/Main_Report.php">/swaps_project/Main_Report.php</a></div>
       </div>
       <div class="pill">A03 Injection + A09 Logging Enabled</div>
     </div>
