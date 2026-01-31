@@ -9,6 +9,9 @@ require_once 'session_check.php';
 // Load secure configuration
 require_once __DIR__ . '/config.php';
 
+// Check user role for conditional display
+$isAdminOrTech = !empty($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'technician'], true);
+
 // ============================================
 // SECURITY: Force HTTPS in production
 // ============================================
@@ -381,15 +384,16 @@ if ($machine_number) {
                     </div>
                 </div>
 
-                <!-- Notes Section -->
-                <?php if ($machine['notes']): ?>
+                <!-- Notes Section (Admin/Technician Only) -->
+                <?php if ($isAdminOrTech && $machine['notes']): ?>
                 <div class="info-section">
                     <h2>Notes</h2>
                     <div class="notes-box"><?php echo htmlspecialchars($machine['notes']); ?></div>
                 </div>
                 <?php endif; ?>
 
-                <!-- Related Reports Section -->
+                <!-- Related Reports Section (Admin/Technician Only) -->
+                <?php if ($isAdminOrTech): ?>
                 <div class="info-section">
                     <h2>Related Reports (<?php echo count($reports); ?>)</h2>
                     <div>
@@ -418,6 +422,7 @@ if ($machine_number) {
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
 
             <div class="footer">

@@ -18,43 +18,29 @@ header("Expires: 0");
  */
 
 //////////////////////////////
-// DATABASE: Uses sagana_part.sql schema (separate from main database)
+// DATABASE: Uses main database (database.sql schema)
 //////////////////////////////
-require_once __DIR__ . '/config_sagana.php';
-$dbHost = SAGANA_DB_HOST;
-$dbName = SAGANA_DB_NAME;  // Sagana Part database
-$dbUser = SAGANA_DB_USER;
-$dbPass = SAGANA_DB_PASS;
+require_once __DIR__ . '/config.php';
 
-// Sagana schema: machines table uses part_number as PK, with description and state columns
+// Main database schema: machines table
 $MACHINE_PARTS_TABLE = "machines";
 $PART_COL            = "part_number";
-$STATUS_COL          = "state";       // your column name is state      
+$STATUS_COL          = "state";
 
-// Status strings used in your machine_parts table (adjust to match your existing schema values)
-$STATUS_OUT_OF_ORDER = "out_of_order";       // must exist in your machine table data
-$STATUS_UNDER_MAINTENANCE = "under_maintenance";
-$STATUS_AVAILABLE = "available";             // change to "in_order" if your table uses that
+// Status strings
+$STATUS_OUT_OF_ORDER = "out_of_order";
+$STATUS_UNDER_MAINTENANCE = "in_maintenance";
+$STATUS_AVAILABLE = "ready";
 
-function pdo_conn(string $host, string $db, string $user, string $pass): PDO {
-  $dsn = "mysql:host={$host};dbname={$db};charset=utf8mb4";
-  return new PDO($dsn, $user, $pass, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES => false,
-  ]);
+function pdo_conn(): PDO {
+  return getPDOConnection();
 }
 
 function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, "UTF-8"); }
 
 function log_event(PDO $pdo, string $eventType, ?int $reportId, string $actorRole, ?int $actorId, ?string $details = null): void {
-  $stmt = $pdo->prepare("
-    INSERT INTO audit_logs (event_type, report_id, actor_role, actor_id, ip_address, user_agent, details)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  ");
-  $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-  $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
-  $stmt->execute([$eventType, $reportId, $actorRole, $actorId, $ip, $ua, $details]);
+  // Note: Main database doesn't have audit_logs table, log to error_log instead
+  error_log("LOG EVENT: $eventType | report_id=$reportId | actor=$actorRole/$actorId | details=$details");
 }
 
 $errors = [];
@@ -62,46 +48,15 @@ $successMsg = null;
 $machineAddedMsg = null;
 
 try {
-  $pdo = pdo_conn($dbHost, $dbName, $dbUser, $dbPass);
+  $pdo = pdo_conn();
 } catch (Throwable $e) {
   http_response_code(500);
-  echo "DB connection failed. Check DB settings in report.php.";
+  error_log('Main_Report DB connection error: ' . $e->getMessage());
+  echo "DB connection failed. Check DB settings in config.php.";
   exit;
 }
 
-// ===== ADD MACHINES SECTION =====
-// Initialize machines PN-1001 to PN-1009
-try {
-  $stmt = $pdo->prepare("INSERT IGNORE INTO {$MACHINE_PARTS_TABLE} ({$PART_COL}, description, {$STATUS_COL}) VALUES (?, ?, ?)");
-  
-  $machines = [
-    ['PN-1001', 'Widget A'],
-    ['PN-1002', 'Widget B'],
-    ['PN-1003', 'Widget C'],
-    ['PN-1004', 'Widget D'],
-    ['PN-1005', 'Widget E'],
-    ['PN-1006', 'Widget F'],
-    ['PN-1007', 'Widget G'],
-    ['PN-1008', 'Widget H'],
-    ['PN-1009', 'Widget I'],
-  ];
-  
-  $addedCount = 0;
-  foreach ($machines as $m) {
-    try {
-      $stmt->execute([$m[0], $m[1], $STATUS_AVAILABLE]);
-      $addedCount++;
-    } catch (Throwable $e) {
-      // Machine already exists, skip
-    }
-  }
-  
-  if ($addedCount > 0) {
-    $machineAddedMsg = "✓ System initialized with {$addedCount} machine(s)";
-  }
-} catch (Throwable $e) {
-  $errors[] = "Error initializing machines: " . $e->getMessage();
-}
+// Machine initialization removed - machines should be added via add_machines.php or admin interface
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
   $part_number = trim((string)($_POST["part_number"] ?? ""));
@@ -114,6 +69,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   if ($issue === "" || strlen($issue) > 2000) $errors[] = "Issue is required (max 2000 chars).";
   if ($severity < 1 || $severity > 10) $errors[] = "Severity must be between 1 and 10.";
   if ($urgency < 1 || $urgency > 10) $errors[] = "Urgency must be between 1 and 10.";
+
+  // Check if machine part exists
+  if ($part_number !== "") {
+    try {
+      $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$MACHINE_PARTS_TABLE} WHERE {$PART_COL} = ?");
+      $stmt->execute([$part_number]);
+      $count = (int)$stmt->fetchColumn();
+      if ($count === 0) {
+        $errors[] = "Machine part '{$part_number}' not found in system. Please check the part number.";
+      }
+    } catch (Throwable $e) {
+      $errors[] = "Error validating machine part: " . $e->getMessage();
+    }
+  }
 
   if (!$errors) {
     try {
@@ -197,17 +166,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <p class="muted">Welcome to our Report Maintenance Issue page. How can we help you today?</p>
     <p class="muted">Technician view: <a href="/swaps_project/technician.php?tech_id=1">Technician Page</a></p>
 
-    <?php if ($machineAddedMsg): ?>
-      <div class="alert ok"><?= e($machineAddedMsg) ?></div>
-    <?php endif; ?>
-
     <?php if ($successMsg): ?>
       <div class="alert ok"><?= e($successMsg) ?></div>
     <?php endif; ?>
 
     <?php if ($errors): ?>
       <div class="alert err">
-        <b>Fix these:</b>
+        <b>Error:</b>
         <ul>
           <?php foreach ($errors as $er): ?>
             <li><?= e($er) ?></li>
@@ -219,12 +184,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
    <form method="post" action="/swaps_project/Main_Report.php?v=2" autocomplete="off">
       <div class="row">
         <div class="col">
-          <label for="machine_num">Machine Part Number</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="number" id="machine_num" name="machine_num" min="1" max="9" placeholder="1-9" required style="flex: 1;" />
-            <input type="text" id="part_display" placeholder="Select..." readonly style="flex: 1; cursor: not-allowed; background: #0a1020;" />
-          </div>
-          <input type="hidden" id="part_number" name="part_number" required />
+          <label for="part_number">Machine Part Number</label>
+          <input type="text" id="part_number" name="part_number" placeholder="e.g., PN-1001" required style="width: 100%;" />
         </div>
         <div class="col">
           <label>Severity (1-10)</label>
@@ -242,36 +203,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <button class="btn" type="submit">Submit Report</button>
     </form>
   </div>
-  <script>
-    const machineMap = {
-      1: { value: 'PN-1001', display: 'PN-1001 - Widget A' },
-      2: { value: 'PN-1002', display: 'PN-1002 - Widget B' },
-      3: { value: 'PN-1003', display: 'PN-1003 - Widget C' },
-      4: { value: 'PN-1004', display: 'PN-1004 - Widget D' },
-      5: { value: 'PN-1005', display: 'PN-1005 - Widget E' },
-      6: { value: 'PN-1006', display: 'PN-1006 - Widget F' },
-      7: { value: 'PN-1007', display: 'PN-1007 - Widget G' },
-      8: { value: 'PN-1008', display: 'PN-1008 - Widget H' },
-      9: { value: 'PN-1009', display: 'PN-1009 - Widget I' }
-    };
-
-    const numInput = document.getElementById('machine_num');
-    const displayInput = document.getElementById('part_display');
-    const hiddenInput = document.getElementById('part_number');
-
-    function updateMachine() {
-      const num = numInput.value;
-      if (num && machineMap[num]) {
-        displayInput.value = machineMap[num].display;
-        hiddenInput.value = machineMap[num].value;
-      } else {
-        displayInput.value = '';
-        hiddenInput.value = '';
-      }
-    }
-
-    numInput.addEventListener('input', updateMachine);
-  </script>
 </body>
 </html>
 

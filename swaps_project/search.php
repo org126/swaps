@@ -5,6 +5,23 @@ require_once __DIR__ . '/config.php';
 
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
+// Logout handler
+if (isset($_GET['logout']) && $_GET['logout'] === '1') {
+	if (session_status() === PHP_SESSION_NONE) {
+		session_start();
+	}
+	$_SESSION = [];
+	if (ini_get('session.use_cookies')) {
+		$params = session_get_cookie_params();
+		setcookie(session_name(), '', time() - 42000,
+			$params['path'], $params['domain'], $params['secure'], $params['httponly']
+		);
+	}
+	session_destroy();
+	header('Location: /swaps_project/loginpage.php');
+	exit('Logged out');
+}
+
 $term = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
 $rows = [];
 $error = null;
@@ -16,13 +33,13 @@ if ($term !== '') {
 				$sql = "
 						SELECT id, part_number, machine_number, next_maintenance_date, notes, created_at
 						FROM machines
-						WHERE part_number LIKE :t OR machine_number LIKE :t
+						WHERE part_number LIKE ? OR machine_number LIKE ?
 						ORDER BY created_at DESC
 						LIMIT 100
 				";
 				$stmt = $pdo->prepare($sql);
 				$like = '%' . $term . '%';
-				$stmt->execute([':t' => $like]);
+				$stmt->execute([$like, $like]);
 				$rows = $stmt->fetchAll();
 		} catch (Exception $e) {
 				// Log the actual error internally but show generic message to user
@@ -38,6 +55,9 @@ if ($term !== '') {
 	<title>Machine Search</title>
 	<style>
 		body { font-family: Arial, sans-serif; margin: 24px; }
+		.nav { margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+		.nav a { display: inline-block; padding: 8px 12px; background: #4f7cff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; }
+		.nav a.secondary { background: #6c757d; }
 		form { margin-bottom: 16px; }
 		table { border-collapse: collapse; width: 100%; }
 		th, td { border: 1px solid $\ccc; padding: 8px; }
@@ -47,6 +67,14 @@ if ($term !== '') {
 </head>
 <body>
 	<h2>Search Machines</h2>
+	<div class="nav">
+		<?php if (!empty($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'technician'], true)): ?>
+			<a href="/swaps_project/admin_users.php">Admin Users</a>
+			<a href="/swaps_project/technician.php?tech_id=1">check reports</a>
+		<?php endif; ?>
+		<a href="/swaps_project/Main_Report.php">Main Report</a>
+		<a class="secondary" href="/swaps_project/search.php?logout=1">Log Out</a>
+	</div>
 	<form method="get">
 		<label>
 			Search (part or machine number):
