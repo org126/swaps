@@ -96,8 +96,8 @@ if (!isset($error) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['use
         $_SESSION['role'] = $row['role'];
         $_SESSION['last_activity'] = time();
         
-        // Redirect to dashboard/machine page
-        header('Location: /swaps/machine_page.php');
+        // Redirect to search page after successful login
+        header('Location: /swaps/search.php');
         exit('Login successful, redirecting...');
       } else {
         $loginMsg = 'Invalid username or password.';

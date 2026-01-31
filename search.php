@@ -78,7 +78,11 @@ if ($term !== '') {
 						<tr>
 							<td><?php echo h($r['id']); ?></td>
 							<td><?php echo h($r['part_number']); ?></td>
-							<td><?php echo h($r['machine_number']); ?></td>
+							<td>
+								<a href="/swaps/machine_page.php?machine_number=<?php echo urlencode((string)$r['machine_number']); ?>">
+									<?php echo h($r['machine_number']); ?>
+								</a>
+							</td>
 							<td><?php echo h($r['next_maintenance_date']); ?></td>
 							<td><?php echo h($r['notes']); ?></td>
 							<td><?php echo h($r['created_at']); ?></td>
