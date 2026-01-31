@@ -15,30 +15,21 @@ require_once __DIR__ . '/session_check.php';
 requireAnyRole(['technician', 'admin']);
 
 //////////////////////////////
-// DATABASE: Uses sagana_part.sql schema (separate from main database)
+// DATABASE: Uses main database (database.sql schema)
 //////////////////////////////
-require_once __DIR__ . '/config_sagana.php';
-$dbHost = SAGANA_DB_HOST;
-$dbName = SAGANA_DB_NAME;
-$dbUser = SAGANA_DB_USER;
-$dbPass = SAGANA_DB_PASS;
+require_once __DIR__ . '/config.php';
 
-// Sagana schema: machines table uses part_number as PK, with description and state columns
+// Database schema: machines table
 $MACHINE_PARTS_TABLE = "machines";
 $PART_COL = "part_number";
 $STATUS_COL = "state";
 
 $STATUS_OUT_OF_ORDER = "out_of_order";
-$STATUS_UNDER_MAINTENANCE = "under_maintenance";
-$STATUS_AVAILABLE = "available"; // change to "in_order" if your table uses that
+$STATUS_UNDER_MAINTENANCE = "in_maintenance";
+$STATUS_AVAILABLE = "ready";
 
-function pdo_conn(string $host, string $db, string $user, string $pass): PDO {
-  $dsn = "mysql:host={$host};dbname={$db};charset=utf8mb4";
-  return new PDO($dsn, $user, $pass, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES => false,
-  ]);
+function pdo_conn(): PDO {
+  return getPDOConnection();
 }
 function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, "UTF-8"); }
 
@@ -54,26 +45,34 @@ function formatSingaporeTime(?string $datetime): string {
 }
 
 function log_event(PDO $pdo, string $eventType, ?int $reportId, string $actorRole, ?int $actorId, ?string $details = null): void {
-  $stmt = $pdo->prepare("
-    INSERT INTO audit_logs (event_type, report_id, actor_role, actor_id, ip_address, user_agent, details)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  ");
-  $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-  $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
-  $stmt->execute([$eventType, $reportId, $actorRole, $actorId, $ip, $ua, $details]);
+  try {
+    $stmt = $pdo->prepare("
+      INSERT INTO logs (table_changed, column_changed, old_info, new_info, user_id)
+      VALUES (?, ?, ?, ?, ?)
+    ");
+    $tableChanged = 'reports';
+    $columnChanged = $eventType;
+    $oldInfo = null;
+    $newInfo = $details ?? "report_id={$reportId}, action={$eventType}";
+    $stmt->execute([$tableChanged, $columnChanged, $oldInfo, $newInfo, $actorId]);
+  } catch (Throwable $e) {
+    error_log("Log event error: " . $e->getMessage());
+  }
 }
 
-$techId = isset($_GET['tech_id']) ? (int)$_GET['tech_id'] : 0;
+// Get technician ID from session (logged-in user)
+$techId = $_SESSION['user_id'] ?? 0;
 if ($techId <= 0) {
-  http_response_code(400);
-  echo "Missing tech_id. Example: /swaps_project/technician.php?tech_id=1";
+  http_response_code(403);
+  echo "User not authenticated. Please log in first.";
   exit;
 }
 
 try {
-  $pdo = pdo_conn($dbHost, $dbName, $dbUser, $dbPass);
+  $pdo = pdo_conn();
 } catch (Throwable $e) {
   http_response_code(500);
+  error_log('Technician DB connection error: ' . $e->getMessage());
   echo "DB connection failed. Check DB settings in technician.php.";
   exit;
 }
@@ -92,8 +91,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     try {
       $pdo->beginTransaction();
 
-      // Get report row (needed for part_number + status)
-      $stmt = $pdo->prepare("SELECT issue_id, part_number, status FROM reports WHERE issue_id = ?");
+      // Get report row (needed for part_number)
+      $stmt = $pdo->prepare("SELECT issue_id, part_number FROM reports WHERE issue_id = ?");
       $stmt->execute([$issueId]);
       $r = $stmt->fetch();
 
@@ -102,18 +101,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       }
 
       $partNumber = $r["part_number"];
-      $currentStatus = $r["status"];
 
       if ($action === "accept") {
-        // Accept only if still out_of_order
-        if ($currentStatus !== "out_of_order") {
-          throw new Exception("Cannot accept. Current status: {$currentStatus}");
-        }
-
         $stmt1 = $pdo->prepare("
           UPDATE reports
-          SET status='under_maintenance', technician_id=?, accepted_at=NOW()
-          WHERE issue_id=? AND status='out_of_order'
+          SET performed_by=?
+          WHERE issue_id=?
         ");
         $stmt1->execute([$techId, $issueId]);
 
@@ -129,16 +122,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       }
 
       elseif ($action === "finish") {
-        // Finish only if under_maintenance AND assigned to this technician
+        // Finish only if assigned to this technician; remove report from queue
         $stmt1 = $pdo->prepare("
-          UPDATE reports
-          SET status='finished', finished_at=NOW()
-          WHERE issue_id=? AND status='under_maintenance' AND technician_id=?
+          DELETE FROM reports
+          WHERE issue_id=? AND performed_by=?
         ");
         $stmt1->execute([$issueId, $techId]);
 
         if ($stmt1->rowCount() === 0) {
-          throw new Exception("Cannot finish: must be under_maintenance and assigned to you.");
+          throw new Exception("Cannot finish: report not assigned to you.");
         }
 
         $stmt2 = $pdo->prepare("
@@ -150,9 +142,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         log_event($pdo, "REPORT_FINISHED", $issueId, "technician", $techId, "Finished report");
         $msg = "Finished Issue ID {$issueId}. (It will disappear from the list.)";
-      }
-
-      else {
+      } else {
         throw new Exception("Invalid action.");
       }
 
@@ -165,11 +155,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   }
 }
 
-// Fetch visible queue (not finished)
+// Fetch visible queue (all reports)
 $stmt = $pdo->prepare("
-  SELECT issue_id, part_number, issue, severity, urgency, status, created_at, technician_id
+  SELECT issue_id, part_number, issue, severity, urgency, created_at, performed_by
   FROM reports
-  WHERE status IN ('out_of_order', 'under_maintenance')
   ORDER BY created_at DESC
 ");
 $stmt->execute();
@@ -190,9 +179,7 @@ $rows = $stmt->fetchAll();
       <div>
         <h1>Technician Report Queue</h1>
         <div class="small">Technician ID: <span class="pill"><?= e((string)$techId) ?></span></div>
-        <div class="small">Reporter page: <a href="/swaps_project/Main_Report.php">/swaps_project/Main_Report.php</a></div>
       </div>
-      <div class="pill">A03 Injection + A09 Logging Enabled</div>
     </div>
 
     <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
@@ -206,20 +193,19 @@ $rows = $stmt->fetchAll();
           <th>Issue</th>
           <th>Severity</th>
           <th>Urgency</th>
-          <th>Status</th>
           <th>Created</th>
-          <th>Performed By (tech_id)</th>
+          <th>Assigned To (tech_id)</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
       <?php if (!$rows): ?>
-        <tr><td colspan="9">No active reports.</td></tr>
+        <tr><td colspan="8">No reports found.</td></tr>
       <?php else: ?>
         <?php foreach ($rows as $r): ?>
           <?php
-            $canAccept = ($r["status"] === "out_of_order");
-            $canFinish = ($r["status"] === "under_maintenance" && (int)($r["technician_id"] ?? 0) === $techId);
+            $canAccept = empty($r["performed_by"]);
+            $canFinish = (int)($r["performed_by"] ?? 0) === $techId;
           ?>
           <tr>
             <td><?= e((string)$r["issue_id"]) ?></td>
@@ -227,9 +213,8 @@ $rows = $stmt->fetchAll();
             <td><?= e((string)$r["issue"]) ?></td>
             <td><?= e((string)$r["severity"]) ?></td>
             <td><?= e((string)$r["urgency"]) ?></td>
-            <td><?= e((string)$r["status"]) ?></td>
             <td><?= e(formatSingaporeTime($r["created_at"])) ?></td>
-            <td><?= e((string)($r["technician_id"] ?? "")) ?></td>
+            <td><?= e((string)($r["performed_by"] ?? "")) ?></td>
             <td>
               <form method="post" class="inline-form-flex">
                 <input type="hidden" name="issue_id" value="<?= e((string)$r["issue_id"]) ?>" />
@@ -245,8 +230,8 @@ $rows = $stmt->fetchAll();
                 </button>
               </form>
               <div class="small">
-                <?php if ($r["status"] === "under_maintenance" && (int)($r["technician_id"] ?? 0) !== $techId): ?>
-                  Assigned to another technician.
+                <?php if ((int)($r["performed_by"] ?? 0) > 0 && (int)($r["performed_by"] ?? 0) !== $techId): ?>
+                  Assigned to tech ID <?= e((string)$r["performed_by"]) ?>.
                 <?php endif; ?>
               </div>
             </td>

@@ -6,9 +6,13 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Pragma: no-cache");
 header("Expires: 0");
 
+// Require authentication - only logged-in users can submit reports
+require_once __DIR__ . '/session_check.php';
+requireLogin();
+
 /**
- * report.php
- * - Anyone can submit a maintenance report
+ * Main_Report.php
+ * - Authenticated users can submit a maintenance report
  * - On submit:
  *   1) INSERT into reports
  *   2) Update machine part status -> out_of_order
@@ -40,8 +44,19 @@ function pdo_conn(): PDO {
 function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, "UTF-8"); }
 
 function log_event(PDO $pdo, string $eventType, ?int $reportId, string $actorRole, ?int $actorId, ?string $details = null): void {
-  // Note: Main database doesn't have audit_logs table, log to error_log instead
-  error_log("LOG EVENT: $eventType | report_id=$reportId | actor=$actorRole/$actorId | details=$details");
+  try {
+    $stmt = $pdo->prepare("
+      INSERT INTO logs (table_changed, column_changed, old_info, new_info, user_id)
+      VALUES (?, ?, ?, ?, ?)
+    ");
+    $tableChanged = 'reports';
+    $columnChanged = $eventType;
+    $oldInfo = null;
+    $newInfo = $details ?? "report_id={$reportId}, action={$eventType}";
+    $stmt->execute([$tableChanged, $columnChanged, $oldInfo, $newInfo, $actorId]);
+  } catch (Throwable $e) {
+    error_log("Log event error: " . $e->getMessage());
+  }
 }
 
 $errors = [];
@@ -60,7 +75,8 @@ try {
 // Machine initialization removed - machines should be added via add_machines.php or admin interface
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-  $part_number = trim((string)($_POST["part_number"] ?? ""));
+  $raw_part_number = (string)($_POST["part_number"] ?? "");
+  $part_number = strtoupper(preg_replace('/\s+/', '', trim($raw_part_number)));
   $issue = trim((string)($_POST["issue"] ?? ""));
   $severity = (int)($_POST["severity"] ?? 0);
   $urgency = (int)($_POST["urgency"] ?? 0);
@@ -90,9 +106,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       $pdo->beginTransaction();
 
       // 1) Insert report (A03: prepared statement)
+      // performed_by should be blank (NULL) when report is created
       $stmt = $pdo->prepare("
-        INSERT INTO reports (part_number, issue, severity, urgency)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO reports (part_number, issue, severity, urgency, performed_by)
+        VALUES (?, ?, ?, ?, NULL)
       ");
       $stmt->execute([$part_number, $issue, $severity, $urgency]);
       $newReportId = (int)$pdo->lastInsertId();
@@ -104,10 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         WHERE {$PART_COL} = ?
       ");
       $stmt2->execute([$STATUS_UNAVAILABLE, $part_number]);
-      // Check if machine was updated (0 rows = machine doesn't exist)
-      if ($stmt2->rowCount() === 0) {
-        throw new Exception("Machine not found. Please use an existing part number like PN-1001, PN-1002, or PN-1003.");
-      }
+      // Do not treat 0 affected rows as missing machine (state may already match)
 
       // 3) Log (A09)
       log_event($pdo, "REPORT_CREATED", $newReportId, "reporter", null, "Report submitted");
@@ -159,7 +173,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="row">
         <div class="col">
           <label for="part_number">Machine Part Number</label>
-          <input type="text" id="part_number" name="part_number" placeholder="e.g., PN-1001" required />
+             <input type="text" id="part_number" name="part_number" placeholder="e.g., PN-1001" required
+               oninput="this.value=this.value.replace(/\s+/g,'').toUpperCase();" />
         </div>
         <div class="col">
           <label>Severity (1-10)</label>

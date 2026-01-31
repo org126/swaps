@@ -95,7 +95,11 @@ if ($term !== '') {
 					<?php foreach ($rows as $r): ?>
 						<tr>
 							<td><?php echo h($r['id']); ?></td>
-							<td><?php echo h($r['part_number']); ?></td>
+							<td>
+								<a href="/swaps_project/machine_page.php?machine_number=<?php echo urlencode((string)$r['machine_number']); ?>">
+									<?php echo h($r['part_number']); ?>
+								</a>
+							</td>
 							<td>
 								<a href="/swaps_project/machine_page.php?machine_number=<?php echo urlencode((string)$r['machine_number']); ?>">
 									<?php echo h($r['machine_number']); ?>
