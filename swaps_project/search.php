@@ -96,12 +96,12 @@ if ($term !== '') {
 						<tr>
 							<td><?php echo h($r['id']); ?></td>
 							<td>
-								<a href="/swaps_project/machine_page.php?machine_number=<?php echo urlencode((string)$r['machine_number']); ?>">
+								<a href="/swaps_project/machine_page.php?part_number=<?php echo urlencode((string)$r['part_number']); ?>">
 									<?php echo h($r['part_number']); ?>
 								</a>
 							</td>
 							<td>
-								<a href="/swaps_project/machine_page.php?machine_number=<?php echo urlencode((string)$r['machine_number']); ?>">
+								<a href="/swaps_project/machine_page.php?part_number=<?php echo urlencode((string)$r['part_number']); ?>">
 									<?php echo h($r['machine_number']); ?>
 								</a>
 							</td>

@@ -12,37 +12,53 @@ if (defined('REQUIRE_HTTPS') && REQUIRE_HTTPS && empty($_SERVER['HTTPS']) && ($_
 }
 
 // Validate input parameters
+$part_number = isset($_GET['part_number']) ? trim((string)$_GET['part_number']) : '';
 $machine_number = isset($_GET['machine_number']) ? trim((string)$_GET['machine_number']) : '';
 $limit = isset($_GET['limit']) ? min((int)$_GET['limit'], defined('MAX_REPORT_LIMIT') ? MAX_REPORT_LIMIT : 20) : 20;
 
 $machine = null;
+$machineParts = [];
 $reports = [];
 $error = null;
 
-if ($machine_number !== '') {
+if ($part_number !== '' || $machine_number !== '') {
     try {
         $conn = new mysqli(DB_HOST . ':' . DB_PORT, DB_USER, DB_PASS, DB_NAME);
         if ($conn->connect_error) {
             error_log('Database connection error: ' . $conn->connect_error);
             $error = 'Unable to connect to database';
         } else {
-            $stmt = $conn->prepare('SELECT id, part_number, machine_number, state, next_maintenance_date, notes, created_at FROM machines WHERE machine_number = ? LIMIT 1');
-            $stmt->bind_param('s', $machine_number);
+            if ($part_number !== '') {
+                $stmt = $conn->prepare('SELECT id, part_number, machine_number, state, next_maintenance_date, notes, created_at FROM machines WHERE part_number = ? LIMIT 1');
+                $stmt->bind_param('s', $part_number);
+            } else {
+                $stmt = $conn->prepare('SELECT id, part_number, machine_number, state, next_maintenance_date, notes, created_at FROM machines WHERE machine_number = ? LIMIT 1');
+                $stmt->bind_param('s', $machine_number);
+            }
             $stmt->execute();
             $result = $stmt->get_result();
             $machine = $result->fetch_assoc();
             $stmt->close();
 
             if ($machine) {
+                $machineNumber = $machine['machine_number'];
+
+                $stmtParts = $conn->prepare('SELECT id, part_number, machine_number, state, next_maintenance_date, notes, created_at FROM machines WHERE machine_number = ? ORDER BY part_number ASC');
+                $stmtParts->bind_param('s', $machineNumber);
+                $stmtParts->execute();
+                $machineParts = $stmtParts->get_result()->fetch_all(MYSQLI_ASSOC);
+                $stmtParts->close();
+
                 $stmt2 = $conn->prepare('
                     SELECT r.issue_id, r.part_number, r.issue, r.severity, r.urgency, r.created_at, u.username
                     FROM reports r
+                    JOIN machines m ON r.part_number = m.part_number
                     LEFT JOIN users u ON r.performed_by = u.user_id
-                    WHERE r.part_number = ?
+                    WHERE m.machine_number = ?
                     ORDER BY r.created_at DESC
                     LIMIT ?
                 ');
-                $stmt2->bind_param('si', $machine['part_number'], $limit);
+                $stmt2->bind_param('si', $machineNumber, $limit);
                 $stmt2->execute();
                 $reports = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
                 $stmt2->close();
@@ -56,7 +72,7 @@ if ($machine_number !== '') {
         $error = 'An error occurred while retrieving machine information';
     }
 } else {
-    $error = 'Machine number not provided';
+    $error = 'Part number or machine number not provided';
 }
 
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -86,7 +102,7 @@ function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
                 <div class="usage-example">
                     <strong>Usage:</strong><br><br>
                     Display machine information:<br>
-                    <code>/swaps_project/machine_page.php?machine_number=123</code>
+                    <code>/swaps_project/machine_page.php?part_number=PN-1001</code>
                 </div>
             </div>
         <?php else: ?>
@@ -100,32 +116,49 @@ function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
                     <div class="machine-title"><?= h($machine['machine_number']) ?></div>
                     <div class="info-grid">
                         <div class="info-item">
-                            <div class="info-label">Part Number</div>
-                            <div class="info-value"><?= h($machine['part_number']) ?></div>
+                            <div class="info-label">Machine Number</div>
+                            <div class="info-value"><?= h($machine['machine_number']) ?></div>
                         </div>
                         <div class="info-item">
-                            <div class="info-label">State</div>
-                            <div class="info-value">
-                                <span class="status-badge"><?= h($machine['state']) ?></span>
-                            </div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Next Maintenance</div>
-                            <div class="info-value"><?= h($machine['next_maintenance_date']) ?></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Created</div>
-                            <div class="info-value"><?= h($machine['created_at']) ?></div>
+                            <div class="info-label">Parts</div>
+                            <div class="info-value"><?= h((string)count($machineParts)) ?></div>
                         </div>
                     </div>
                 </div>
 
-                <?php if ($isAdminOrTech && !empty($machine['notes'])): ?>
-                    <div class="notes-section">
-                        <div class="notes-title">Notes</div>
-                        <div><?= nl2br(h($machine['notes'])) ?></div>
-                    </div>
-                <?php endif; ?>
+                <div class="reports-section">
+                    <div class="reports-title">Machine Parts</div>
+                    <?php if (!$machineParts): ?>
+                        <div class="no-reports">No parts found for this machine</div>
+                    <?php else: ?>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Part Number</th>
+                                    <th>State</th>
+                                    <th>Next Maintenance</th>
+                                    <th>Created</th>
+                                    <?php if ($isAdminOrTech): ?>
+                                        <th>Notes</th>
+                                    <?php endif; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($machineParts as $p): ?>
+                                    <tr>
+                                        <td><?= h((string)$p['part_number']) ?></td>
+                                        <td><span class="status-badge"><?= h((string)$p['state']) ?></span></td>
+                                        <td><?= h((string)$p['next_maintenance_date']) ?></td>
+                                        <td><?= h((string)$p['created_at']) ?></td>
+                                        <?php if ($isAdminOrTech): ?>
+                                            <td><?= nl2br(h((string)($p['notes'] ?? ''))) ?></td>
+                                        <?php endif; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                </div>
 
                 <?php if ($isAdminOrTech): ?>
                     <div class="reports-section">
@@ -151,7 +184,7 @@ function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
             </div>
 
             <div class="footer small">
-                <p>Machine ID: <?= h($machine['id']) ?> | Last Updated: <?= h(date('F d, Y H:i')) ?></p>
+                <p>Machine Number: <?= h($machine['machine_number']) ?> | Last Updated: <?= h(date('F d, Y H:i')) ?></p>
             </div>
         <?php endif; ?>
     </div>
